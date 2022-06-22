@@ -2,6 +2,18 @@ package entities;
 
 public class TestEntityWithFinalFields {
 
+    public Integer getNum() {
+        return num;
+    }
+
+    public Long getLg() {
+        return lg;
+    }
+
+    public String getName() {
+        return name;
+    }
+
     private final Integer num;
     private final Long lg;
     private final String name;

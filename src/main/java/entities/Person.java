@@ -4,49 +4,58 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 // Test class
 public class Person {
     private String name;
+
     private final String originalSecondName;
+
     private int age;
     private List<String> favoriteBooks;
     private Person spouse;
     private Set<Person> children;
     private Map<RelativeType, Person> relatives = new HashMap<>();
-    public static String species = "HUMAN";
+    public static final String species = "HUMAN";
+    private AtomicLong familyBudget;
+    private AtomicBoolean someBoolean = new AtomicBoolean(true);
 
     public Person(){
         this.originalSecondName = "DEFAULT";
     }
 
-    public Person(String name, String originalSecondName, int age, List<String> favoriteBooks) {
+    public Person(String name, String originalSecondName, int age, List<String> favoriteBooks, AtomicLong familyBudget) {
         this.name = name;
         this.originalSecondName = originalSecondName;
         this.age = age;
         this.favoriteBooks = favoriteBooks;
+        this.familyBudget = familyBudget;
     }
 
-    public Person(String name, String originalSecondName, int age, List<String> favoriteBooks, Person spouse) {
+    public Person(String name, String originalSecondName, int age, List<String> favoriteBooks, Person spouse, AtomicLong familyBudget) {
         this.name = name;
         this.originalSecondName = originalSecondName;
         this.age = age;
         this.favoriteBooks = favoriteBooks;
         this.spouse = spouse;
+        this.familyBudget = familyBudget;
     }
 
-    public Person(String name, String originalSecondName, int age, List<String> favoriteBooks, Person spouse, Set<Person> children) {
+    public Person(String name, String originalSecondName, int age, List<String> favoriteBooks, Person spouse, Set<Person> children, AtomicLong familyBudget) {
         this.name = name;
         this.originalSecondName = originalSecondName;
         this.age = age;
         this.favoriteBooks = favoriteBooks;
         this.spouse = spouse;
         this.children = children;
+        this.familyBudget = familyBudget;
     }
 
     public Person(String name, String originalSecondName, int age, List<String> favoriteBooks,
-                  Person spouse, Set<Person> children, Map<RelativeType, Person> relatives) {
+                  Person spouse, Set<Person> children, Map<RelativeType, Person> relatives, AtomicLong familyBudget) {
         this.name = name;
         this.originalSecondName = originalSecondName;
         this.age = age;
@@ -54,6 +63,23 @@ public class Person {
         this.spouse = spouse;
         this.children = children;
         this.relatives = relatives;
+        this.familyBudget = familyBudget;
+    }
+
+    public String getOriginalSecondName() {
+        return originalSecondName;
+    }
+
+    public static String getSpecies() {
+        return species;
+    }
+
+    public AtomicLong getFamilyBudget() {
+        return familyBudget;
+    }
+
+    public AtomicBoolean getSomeBoolean() {
+        return someBoolean;
     }
 
     public Map<RelativeType, Person> getRelatives() {

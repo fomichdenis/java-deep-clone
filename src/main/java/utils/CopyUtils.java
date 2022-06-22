@@ -1,39 +1,51 @@
 package utils;
 
+import exception.ObjectCannotBeClonedException;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class CopyUtils {
 
     /**
      * Deeply copy an object creating new instances of all nested references recursively.
      * All referenced objects MUST have a constructor without args to be created.
+     * This method doesn't copy object with Number superclass (except AtomicInteger and AtomicLong)
+     * but set a value from original object.
+     * The method works via reflections so the warning will be thrown if any of referenced object is instance
+     * of a class that shouldn't be accessed via reflection.
      * @param object object to be copied
      * @return copy of object with copies of all nested referenced objects
-     * @throws NoSuchMethodException if any copying object doesn't have a constructor without args
-     * @throws InvocationTargetException if any copying object constructor throws an exception
-     * @throws IllegalAccessException if any Constructor object is enforcing Java language access control and the underlying constructor is inaccessible
+     * @throws ObjectCannotBeClonedException if any object can't be copied
+     * @throws IllegalAccessException if any Field of any object is enforcing Java language access
+     *                                   control and the underlying constructor is inaccessible
     */
-    public static <T> T deepClone(T object) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    public static <T> T deepClone(T object) throws ObjectCannotBeClonedException, IllegalAccessException {
         return new Copier(false).deepCopy(object);
     }
 
     /**
      * Deeply copy an object creating new instances of all nested references recursively.
      * All referenced objects MUST have a constructor without args to be created.
+     * This method doesn't copy object with Number superclass (except AtomicInteger and AtomicLong)
+     * but set a value from original object.
+     * The method works via reflections so the warning will be thrown if any of referenced object is instance
+     * of a class that shouldn't be accessed via reflection.
      * @param object object to be copied
      * @param isReplaceNonCopiedWithNull defines action on error during object copy creation:
      *                                   if true - set it as null if false - throw an error
      * @return copy of object with copies of all nested referenced objects
-     * @throws NoSuchMethodException if any copying object doesn't have a constructor without args
-     * @throws InvocationTargetException if any copying object constructor throws an exception
-     * @throws IllegalAccessException if any Constructor object is enforcing Java language access
+     * @throws ObjectCannotBeClonedException if any object can't be copied
+     * @throws IllegalAccessException if any Field of any object is enforcing Java language access
      *                                   control and the underlying constructor is inaccessible
      */
-    public static <T> T deepClone(T object, boolean isReplaceNonCopiedWithNull) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    public static <T> T deepClone(T object, boolean isReplaceNonCopiedWithNull) throws ObjectCannotBeClonedException, IllegalAccessException {
         return new Copier(isReplaceNonCopiedWithNull).deepCopy(object);
     }
 
@@ -47,7 +59,7 @@ public class CopyUtils {
         }
 
 
-        private <T> T deepCopy(T object) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        private <T> T deepCopy(T object) throws ObjectCannotBeClonedException, IllegalAccessException {
             if (object == null) {
                 return null;
             }
@@ -64,14 +76,18 @@ public class CopyUtils {
             }
 
             for (Field field : object.getClass().getDeclaredFields()) {
-                field.setAccessible(true);
-
-                if(field.get(object) == null /*|| Modifier.isFinal(field.getModifiers())*/) {
+                if (Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())) {
                     continue;
                 }
 
-                if(field.getType().isPrimitive()
-                        || isReturnTheSameObject(field.getType())) {
+                field.setAccessible(true);
+
+                if(field.get(object) == null) {
+                    field.set(clone, null);
+                    continue;
+                }
+
+                if(field.getType().isPrimitive() || isReturnTheSameObject(field.getType())) {
                     field.set(clone, field.get(object));
                 }
                 else {
@@ -90,7 +106,7 @@ public class CopyUtils {
             return (T) clone;
         }
 
-        private Collection<Object> getCopiedCollection(Collection collectionChildObj) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        private Collection<Object> getCopiedCollection(Collection collectionChildObj) throws ObjectCannotBeClonedException, IllegalAccessException {
             Collection<Object> newCollection = (Collection<Object>) getObjectFromCacheOrCreateNew(collectionChildObj);
 
             for (Object o : collectionChildObj) {
@@ -100,7 +116,7 @@ public class CopyUtils {
 
         }
 
-        private Map<Object, Object> getCopiedMap(Map<Object, Object> mapChildObj) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        private Map<Object, Object> getCopiedMap(Map<Object, Object> mapChildObj) throws ObjectCannotBeClonedException, IllegalAccessException {
             Map<Object, Object> newMap = (Map<Object, Object>) getObjectFromCacheOrCreateNew(mapChildObj);
 
             for (Map.Entry<Object, Object> o : mapChildObj.entrySet()) {
@@ -110,7 +126,7 @@ public class CopyUtils {
 
         }
 
-        private Object getObjectFromCacheOrCreateNew(Object object) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        private Object getObjectFromCacheOrCreateNew(Object object) throws ObjectCannotBeClonedException {
             if (oldToNewObjects.get(object) != null) {
                 return oldToNewObjects.get(object);
             }
@@ -126,13 +142,14 @@ public class CopyUtils {
                 if (isReplaceNonCopiedWithNull) {
                     return null;
                 }
-                throw ex;
+                throw new ObjectCannotBeClonedException(ex);
             }
         }
 
         private boolean isReturnTheSameObject(Class clazz) {
             return clazz.equals(String.class)
-                    || (clazz.getSuperclass() != null && clazz.getSuperclass().equals(Number.class))
+                    || (clazz.getSuperclass() != null && clazz.getSuperclass().equals(Number.class)
+                        && !clazz.equals(AtomicInteger.class) && !clazz.equals(AtomicLong.class))
                     || clazz.equals(Boolean.class);
         }
 
