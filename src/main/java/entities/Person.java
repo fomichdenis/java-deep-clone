@@ -24,6 +24,7 @@ public class Person {
     public static final String species = "HUMAN";
     private AtomicLong familyBudget;
     private AtomicBoolean someBoolean = new AtomicBoolean(true);
+
     public Person(){
         this.originalSecondName = "DEFAULT";
     }

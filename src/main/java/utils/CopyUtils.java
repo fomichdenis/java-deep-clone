@@ -20,6 +20,7 @@ public class CopyUtils {
      * but set a value from original object.
      * The method works via reflections so the warning will be thrown if any of referenced object is instance
      * of a class that shouldn't be accessed via reflection.
+     * The method uses recursion so its depth is indirectly limited.
      * @param object object to be copied
      * @return copy of object with copies of all nested referenced objects
      * @throws ObjectCannotBeClonedException if any object can't be copied
@@ -37,6 +38,7 @@ public class CopyUtils {
      * but set a value from original object.
      * The method works via reflections so the warning will be thrown if any of referenced object is instance
      * of a class that shouldn't be accessed via reflection.
+     * The method uses recursion so its depth is indirectly limited.
      * @param object object to be copied
      * @param isReplaceNonCopiedWithNull defines action on error during object copy creation:
      *                                   if true - set it as null if false - throw an error
