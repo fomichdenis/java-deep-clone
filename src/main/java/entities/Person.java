@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 
 // Test class
@@ -15,6 +16,7 @@ public class Person {
     private final String originalSecondName;
 
     private int age;
+
     private List<String> favoriteBooks;
     private Person spouse;
     private Set<Person> children;
@@ -22,7 +24,6 @@ public class Person {
     public static final String species = "HUMAN";
     private AtomicLong familyBudget;
     private AtomicBoolean someBoolean = new AtomicBoolean(true);
-
     public Person(){
         this.originalSecondName = "DEFAULT";
     }
@@ -130,12 +131,31 @@ public class Person {
         this.favoriteBooks = favoriteBooks;
     }
 
+
     @Override
     public String toString() {
-        return "name = " + name + "," +
-                "age = " + age + "," +
-                "favoriteBooks = " + favoriteBooks + "," +
-                "spouse = " + (spouse != null ? spouse.hashCode() : null);
+        return "Person{" +
+                "name='" + name + '\'' +
+                ", originalSecondName='" + originalSecondName + '\'' +
+                ", age=" + age +
+                ", favoriteBooks=" + favoriteBooks +
+                ", spouse=" + (spouse == null ? null : spouse.toStringWithoutRecursion()) +
+                ", children=" + (children == null ? null : children.stream().map(Person::toStringWithoutRecursion).collect(Collectors.toSet())) +
+                ", relatives=" + relatives +
+                ", familyBudget=" + familyBudget +
+                ", someBoolean=" + someBoolean +
+                '}';
     }
 
+    public String toStringWithoutRecursion() {
+        return "Person{" +
+                "name='" + name + '\'' +
+                ", originalSecondName='" + originalSecondName + '\'' +
+                ", age=" + age +
+                ", favoriteBooks=" + favoriteBooks +
+                ", children=" + (children == null ? null : children.stream().map(Person::toStringWithoutRecursion).collect(Collectors.toSet())) +
+                ", familyBudget=" + familyBudget +
+                ", someBoolean=" + someBoolean +
+                '}';
+    }
 }

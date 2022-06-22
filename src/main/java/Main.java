@@ -2,16 +2,18 @@ import entities.Person;
 import entities.RelativeType;
 import entities.TestEntityWithFinalFields;
 
-import java.io.ObjectStreamClass;
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static utils.CopyUtils.deepClone;
 
 public class Main {
 
-    public static void main(String[] args) throws InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    public static void main(String[] args) throws IllegalAccessException {
         TestEntityWithFinalFields test = new TestEntityWithFinalFields(1, 100L, "NAME");
         TestEntityWithFinalFields test1 = new TestEntityWithFinalFields(1, 100L, "NAME");
 
@@ -23,7 +25,6 @@ public class Main {
         //Create children
         Person ch1 = new Person("Ch1", originalSecondName, 5, new ArrayList<>(Arrays.asList("book1", "book2")), familyBudget);
         Person ch2 = new Person("Ch2", originalSecondName, 4, new ArrayList<>(Arrays.asList("book3", "book4")), familyBudget);
-        Person ch3 = new Person("Ch2", originalSecondName, 4, new ArrayList<>(Arrays.asList("book3", "book4")), familyBudget);
         Set<Person> children = new HashSet<>(Arrays.asList(ch1, ch2));
 
         // Create mr and mrs (spouses)
@@ -36,13 +37,14 @@ public class Main {
         ch1.getRelatives().put(RelativeType.MOTHER, mrs);
         ch2.getRelatives().put(RelativeType.FATHER, mr);
         ch2.getRelatives().put(RelativeType.MOTHER, mrs);
-        ch3.getRelatives().put(RelativeType.FATHER, mr);
-        ch3.getRelatives().put(RelativeType.MOTHER, mrs);
 
         Person copy = deepClone(mr);
 
         System.out.println("Mr comparing result = " + checkPersonIsCopiedCorrectly(mr, copy));
         System.out.println("Mrs comparing result = " + checkPersonIsCopiedCorrectly(mrs, copy.getSpouse()));
+
+        System.out.println("Original object: " + mr);
+        System.out.println("Copied object: " + copy);
     }
 
     private static boolean checkTestEntityWithFinalFieldsIsCopiedCorrectly(TestEntityWithFinalFields t1, TestEntityWithFinalFields t2) {
