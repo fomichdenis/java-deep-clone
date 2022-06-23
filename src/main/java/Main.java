@@ -1,3 +1,4 @@
+import entities.Man;
 import entities.Person;
 import entities.RelativeType;
 import entities.TestEntityWithFinalFields;
@@ -40,11 +41,27 @@ public class Main {
 
         Person copy = deepClone(mr);
 
-        System.out.println("Mr comparing result = " + checkPersonIsCopiedCorrectly(mr, copy));
-        System.out.println("Mrs comparing result = " + checkPersonIsCopiedCorrectly(mrs, copy.getSpouse()));
+        System.out.println("Mr is not equals to copy = " + checkPersonIsCopiedCorrectly(mr, copy));
+        System.out.println("Mrs is not equals to copy = " + checkPersonIsCopiedCorrectly(mrs, copy.getSpouse()));
 
         System.out.println("Original object: " + mr);
         System.out.println("Copied object: " + copy);
+
+        // Compare Man with his copy
+        Man man = new Man("bla", 1, new ArrayList<>(Arrays.asList("123", "acew")));
+        Man man1 = deepClone(man);
+
+        System.out.println("Man is not equals to copy = " + (man != man1 && man.getFavoriteBooks() != man1.getFavoriteBooks()));
+
+        System.out.println("Original object: " + man);
+        System.out.println("Copied object: " + man1);
+
+        man.setAge(10);
+        man.setName("BlaBla");
+        man.getFavoriteBooks().add("cjbcb");
+
+        System.out.println("Updated original object: " + man);
+        System.out.println("Copied object: " + man1);
     }
 
     private static boolean checkTestEntityWithFinalFieldsIsCopiedCorrectly(TestEntityWithFinalFields t1, TestEntityWithFinalFields t2) {

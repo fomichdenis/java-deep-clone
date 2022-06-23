@@ -1,25 +1,38 @@
 package utils;
 
+import annotation.CopyConstructor;
+import annotation.CopyFieldName;
 import exception.ObjectCannotBeClonedException;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public class CopyUtils {
 
     /**
      * Deeply copy an object creating new instances of all nested references recursively.
-     * All referenced objects MUST have a constructor without args to be created.
-     * This method doesn't copy object with Number superclass (except AtomicInteger and AtomicLong)
-     * but set a value from original object.
-     * The method works via reflections so the warning will be thrown if any of referenced object is instance
-     * of a class that shouldn't be accessed via reflection.
+     * <p>All referenced objects MUST have one of the following constructors to be created:
+     * <ul>
+     *  <li>public constructor without args</li>
+     *  <li>a constructor annotated with {@link CopyConstructor}</li>
+     *  <li>only one public constructor</li>
+     * </ul></p>
+     * <p>All parameters for selected constructor with args MUST satisfy one of the conditions:
+     * <ul>
+     *  <li>parameter should be annotated with {@link CopyFieldName} with field name as annotation parameter</li>
+     *  <li>only one object field should have the same type as constructor parameter has</li>
+     * </ul></p>
+     * <p>This method doesn't copy object with Number superclass (except AtomicInteger and AtomicLong)
+     * but set a value from original object.</p>
+     * <p>The method works via reflections so the warning will be thrown if any of referenced object is instance
+     * of a class that shouldn't be accessed via reflection.</p>
      * The method uses recursion so its depth is indirectly limited.
      * @param object object to be copied
      * @return copy of object with copies of all nested referenced objects
@@ -33,11 +46,21 @@ public class CopyUtils {
 
     /**
      * Deeply copy an object creating new instances of all nested references recursively.
-     * All referenced objects MUST have a constructor without args to be created.
-     * This method doesn't copy object with Number superclass (except AtomicInteger and AtomicLong)
-     * but set a value from original object.
-     * The method works via reflections so the warning will be thrown if any of referenced object is instance
-     * of a class that shouldn't be accessed via reflection.
+     * <p>All referenced objects MUST have one of the following constructors to be created:
+     * <ul>
+     *  <li>public constructor without args</li>
+     *  <li>a constructor annotated with {@link CopyConstructor}</li>
+     *  <li>only one public constructor</li>
+     * </ul></p>
+     * <p>All parameters for selected constructor with args MUST satisfy one of the conditions:
+     * <ul>
+     *  <li>parameter should be annotated with {@link CopyFieldName} with field name as annotation parameter</li>
+     *  <li>only one object field should have the same type as constructor parameter has</li>
+     * </ul></p>
+     * <p>This method doesn't copy object with Number superclass (except AtomicInteger and AtomicLong)
+     * but set a value from original object.</p>
+     * <p>The method works via reflections so the warning will be thrown if any of referenced object is instance
+     * of a class that shouldn't be accessed via reflection.</p>
      * The method uses recursion so its depth is indirectly limited.
      * @param object object to be copied
      * @param isReplaceNonCopiedWithNull defines action on error during object copy creation:
@@ -133,7 +156,9 @@ public class CopyUtils {
                 return oldToNewObjects.get(object);
             }
             try {
-                Object clone = object.getClass().getDeclaredConstructor().newInstance();
+                Constructor<?> constructor = findConstructor(object);
+
+                Object clone = createObjectWithConstructor(object, constructor);
                 oldToNewObjects.put(object, clone);
                 return clone;
             }
@@ -146,6 +171,89 @@ public class CopyUtils {
                 }
                 throw new ObjectCannotBeClonedException(ex);
             }
+        }
+
+        private Constructor<?> findConstructor(Object object) {
+            Constructor<?>[] constructors = object.getClass().getDeclaredConstructors();
+            Constructor<?> constructor;
+            List<Constructor<?>> constructorList = Arrays.stream(constructors)
+                    .filter(c -> Modifier.isPublic(c.getModifiers()))
+                    .collect(Collectors.toList());
+            if (constructorList.size() == 1) {
+                constructor = constructorList.get(0);
+            }
+            else {
+                List<Constructor<?>> copyConstructor = constructorList.stream()
+                        .filter(c -> c.getAnnotation(CopyConstructor.class) != null)
+                        .collect(Collectors.toList());
+                if (copyConstructor.size() == 1) {
+                    constructor = copyConstructor.get(0);
+                }
+                else if (copyConstructor.size() > 1) {
+                    throw new ObjectCannotBeClonedException(
+                            "Ambiguous constructor: there are more then 1 constructor with CopyConstructor annotation");
+                }
+                else {
+                    constructor = constructorList.stream()
+                            .filter(c -> c.getParameterCount() == 0)
+                            .findFirst()
+                            .orElse(null);
+                    if (constructor == null) {
+                        throw new ObjectCannotBeClonedException(
+                                "Ambiguous constructor: for class " + object.getClass().getName() + " there are more than 1 constructor and there is neither empty constructor nor constructor annotated CopyConstructor");
+                    }
+                }
+            }
+            return constructor;
+        }
+
+        private Object createObjectWithConstructor(Object object, Constructor<?> constructor) throws InvocationTargetException, InstantiationException, IllegalAccessException {
+
+            if (constructor.getParameterCount() == 0) {
+                return constructor.newInstance();
+            }
+            Field[] declaredFields = object.getClass().getDeclaredFields();
+
+            Class<?>[] parameterTypes = constructor.getParameterTypes();
+            Annotation[][] parameterAnnotations = constructor.getParameterAnnotations();
+            Object[] parameters = new Object[parameterTypes.length];
+
+            for (int i = 0; i < parameterTypes.length; i++) {
+                final int finalI = i;
+                Annotation[] parameterAnnotation = parameterAnnotations[i];
+                CopyFieldName copyAnnotation = (CopyFieldName) Arrays.stream(parameterAnnotation)
+                        .filter(a -> CopyFieldName.class.equals(a.annotationType()))
+                        .findFirst()
+                        .orElse(null);
+                if (copyAnnotation != null) {
+                    Optional<Field> field = Arrays.stream(declaredFields)
+                            .filter(f -> f.getName().equals(copyAnnotation.value()))
+                            .findFirst();
+                    if (field.isPresent()) {
+                        field.get().setAccessible(true);
+                        parameters[finalI] = field.get().get(object);
+                    }
+                    else {
+                        throw new ObjectCannotBeClonedException(
+                                "Field with name " + copyAnnotation.value() + " can not be found for class " + object.getClass().getName());
+                    }
+                }
+                else {
+                    List<Field> objectFieldsWithTheSameType = Arrays.stream(declaredFields)
+                            .filter(f -> f.getType().equals(parameterTypes[finalI]))
+                            .collect(Collectors.toList());
+                    if (objectFieldsWithTheSameType.size() != 1) {
+                        throw new ObjectCannotBeClonedException(
+                                "Ambiguous constructor field: " + i + "(" + parameterTypes[finalI].getName() + ") for class " + object.getClass().getName());
+                    }
+                    objectFieldsWithTheSameType.get(0).setAccessible(true);
+                    parameters[finalI] = objectFieldsWithTheSameType.get(0).get(object);
+                }
+            }
+
+            //TODO change
+            // may be we need to copy parameters and save what we have copied
+            return constructor.newInstance(parameters);
         }
 
         private boolean isReturnTheSameObject(Class clazz) {

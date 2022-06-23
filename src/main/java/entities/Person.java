@@ -1,5 +1,8 @@
 package entities;
 
+import annotation.CopyConstructor;
+import annotation.CopyFieldName;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,7 +10,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-
 
 // Test class
 public class Person {
@@ -29,7 +31,12 @@ public class Person {
         this.originalSecondName = "DEFAULT";
     }
 
-    public Person(String name, String originalSecondName, int age, List<String> favoriteBooks, AtomicLong familyBudget) {
+
+    public Person(@CopyFieldName("name") String name,
+                  @CopyFieldName("originalSecondName") String originalSecondName,
+                  @CopyFieldName("age") int age,
+                  @CopyFieldName("favoriteBooks") List<String> favoriteBooks,
+                  @CopyFieldName("familyBudget") AtomicLong familyBudget) {
         this.name = name;
         this.originalSecondName = originalSecondName;
         this.age = age;
