@@ -21,7 +21,7 @@ public class CopyUtils {
      * <p>All referenced objects MUST have one of the following constructors to be created:
      * <ul>
      *  <li>public constructor without args</li>
-     *  <li>a constructor annotated with {@link CopyConstructor}</li>
+     *  <li>a public constructor annotated with {@link CopyConstructor}</li>
      *  <li>only one public constructor</li>
      * </ul></p>
      * <p>All parameters for selected constructor with args MUST satisfy one of the conditions:
@@ -49,7 +49,7 @@ public class CopyUtils {
      * <p>All referenced objects MUST have one of the following constructors to be created:
      * <ul>
      *  <li>public constructor without args</li>
-     *  <li>a constructor annotated with {@link CopyConstructor}</li>
+     *  <li>a public constructor annotated with {@link CopyConstructor}</li>
      *  <li>only one public constructor</li>
      * </ul></p>
      * <p>All parameters for selected constructor with args MUST satisfy one of the conditions:
@@ -100,11 +100,17 @@ public class CopyUtils {
                 return null;
             }
 
+            setFieldsForClone(object, clone);
+
+            return (T) clone;
+        }
+
+        private void setFieldsForClone(Object object, Object clone) throws IllegalAccessException {
             for (Field field : object.getClass().getDeclaredFields()) {
+
                 if (Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())) {
                     continue;
                 }
-
                 field.setAccessible(true);
 
                 if(field.get(object) == null) {
@@ -128,12 +134,13 @@ public class CopyUtils {
                     }
                 }
             }
-            return (T) clone;
         }
 
-        private Collection<Object> getCopiedCollection(Collection collectionChildObj) throws ObjectCannotBeClonedException, IllegalAccessException {
+        private Collection<Object> getCopiedCollection(Collection<Object> collectionChildObj) throws ObjectCannotBeClonedException, IllegalAccessException {
             Collection<Object> newCollection = (Collection<Object>) getObjectFromCacheOrCreateNew(collectionChildObj);
-
+            if (newCollection == null) {
+                return null;
+            }
             for (Object o : collectionChildObj) {
                 newCollection.add(deepCopy(o));
             }
@@ -143,7 +150,9 @@ public class CopyUtils {
 
         private Map<Object, Object> getCopiedMap(Map<Object, Object> mapChildObj) throws ObjectCannotBeClonedException, IllegalAccessException {
             Map<Object, Object> newMap = (Map<Object, Object>) getObjectFromCacheOrCreateNew(mapChildObj);
-
+            if (newMap == null) {
+                return null;
+            }
             for (Map.Entry<Object, Object> o : mapChildObj.entrySet()) {
                 newMap.put(deepCopy(o.getKey()), deepCopy(o.getValue()));
             }
@@ -157,7 +166,6 @@ public class CopyUtils {
             }
             try {
                 Constructor<?> constructor = findConstructor(object);
-
                 Object clone = createObjectWithConstructor(object, constructor);
                 oldToNewObjects.put(object, clone);
                 return clone;
@@ -250,9 +258,6 @@ public class CopyUtils {
                     parameters[finalI] = objectFieldsWithTheSameType.get(0).get(object);
                 }
             }
-
-            //TODO change
-            // may be we need to copy parameters and save what we have copied
             return constructor.newInstance(parameters);
         }
 
